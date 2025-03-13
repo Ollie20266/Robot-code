@@ -44,24 +44,25 @@ public class BasketTeleOp extends LinearOpMode {
     private final double DRIVE_POWER = 0.7;
     private final double DRIVE_POWER_LOW = 0.3;
     private final double DRIVE_POWER_HIGH = 1.0;
-    private final double ARM_EXTEND_MANUAL_POWER = 0.5;
+    private final double ARM_EXTEND_MANUAL_POWER = 0.3;
 
     private final int ARM_LIFT_DOWN = 0;
     private final int ARM_LIFT_UP = 2850;
-    private final int ARM_EXTEND_RETRACTED = 0;
-    private final int ARM_EXTEND_HORIZ = 1600;
-    private final int ARM_EXTEND_VERT_SAMPLE = 3300;
-    private final int ARM_EXTEND_VERT_SPEC_PRE_HANG = 1100;
-    private final int ARM_EXTEND_VERT_SPEC_POST_HANG = 1700;
-    private final double CLAW_PITCH_DOWN = 0.98; // was originally .99
-    private final double CLAW_PITCH_NEUTRAL = 0.63;
-    private final double CLAW_PITCH_UP = 0.33;
-    private final double CLAW_YAW_NEUTRAL = 0.5;
-    private final double CLAW_OPEN = 0.66;
-    private final double CLAW_CLOSED = 0.27;
-    private final double CLAW_DUMP_TIME = 1.0;
-    private final double CLAW_CLOSE_TIME = 1.0;
-    private final double CLAW_OPEN_TIME = 1.0;
+    private final int ARM_EXTEND_RETRACTED = 1;
+    private final int ARM_EXTEND_HORIZ = 435;
+    private final int ARM_EXTEND_VERT_SAMPLE = 895;
+    private final int ARM_EXTEND_VERT_SPEC_PRE_HANG = 285;
+    private final int ARM_EXTEND_VERT_SPEC_POST_HANG = 450;
+    private final double CLAW_PITCH_DOWN = 0.85;
+    private final double CLAW_PITCH_NEUTRAL = 0.45;
+//    private final double CLAW_PITCH_GRAB_SPEC = 0.51;
+    private final double CLAW_PITCH_UP = 0.17;
+    private final double CLAW_YAW_NEUTRAL = 0.48;
+    private final double CLAW_OPEN = 0.49;
+    private final double CLAW_CLOSED = 0.11;
+    private final double CLAW_DUMP_TIME = 0.5;
+    private final double CLAW_CLOSE_TIME = 0.5;
+    private final double CLAW_OPEN_TIME = 0.5;
 
     @Override
     public void runOpMode() {
@@ -90,13 +91,8 @@ public class BasketTeleOp extends LinearOpMode {
         armExtend.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         clawPitch = hardwareMap.get(Servo.class, "PITCH");
-        clawPitch.setPosition(CLAW_PITCH_DOWN);
-
         clawYaw = hardwareMap.get(Servo.class, "YAW");
-        clawYaw.setPosition(CLAW_YAW_NEUTRAL);
-
         claw = hardwareMap.get(Servo.class, "CLAW");
-        claw.setPosition(CLAW_OPEN);
 
         // Wait for the game to start (driver presses START)
         telemetry.addData("Status", "Initialized");
@@ -106,6 +102,10 @@ public class BasketTeleOp extends LinearOpMode {
         runtime.reset();
         armTimer.reset();
 
+        clawPitch.setPosition(CLAW_PITCH_DOWN);
+        clawYaw.setPosition(CLAW_YAW_NEUTRAL);
+        claw.setPosition(CLAW_OPEN);
+
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
             armLift.setPower(1.0);
@@ -114,6 +114,7 @@ public class BasketTeleOp extends LinearOpMode {
                 case START:
                     armExtend.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                     double armExtendPower = -gamepad2.left_stick_y;
+                    clawYaw.setPosition(CLAW_YAW_NEUTRAL - gamepad2.right_stick_x/3.3);
                     if ((armExtend.getCurrentPosition() - ARM_EXTEND_RETRACTED <= 10
                             && armExtendPower < 0)
                             || (armExtend.getCurrentPosition() >= ARM_EXTEND_HORIZ
@@ -121,7 +122,6 @@ public class BasketTeleOp extends LinearOpMode {
                         armExtendPower = 0.0;
                     }
                     armExtend.setPower(armExtendPower * ARM_EXTEND_MANUAL_POWER);
-                    clawYaw.setPosition(CLAW_YAW_NEUTRAL - gamepad2.right_stick_x/3.3);
 
                     if (gamepad2.right_bumper) {
                         claw.setPosition(CLAW_CLOSED);
@@ -139,6 +139,7 @@ public class BasketTeleOp extends LinearOpMode {
                 case LIFT_SAMPLE_DROP_SPEC:
                     if (gamepad2.b) {
                         armLift.setTargetPosition(ARM_LIFT_UP);
+                        clawYaw.setPosition(CLAW_YAW_NEUTRAL);
                         armState = ArmState.EXTEND_SAMPLE;
                     } else if (gamepad2.left_bumper) {
                         claw.setPosition(CLAW_OPEN);
@@ -202,6 +203,7 @@ public class BasketTeleOp extends LinearOpMode {
                     break;
                 case EXTEND_SPEC:
                     if (Math.abs(armLift.getCurrentPosition() - ARM_LIFT_UP) <= 20) {
+                        clawYaw.setPosition(CLAW_YAW_NEUTRAL);
                         armExtend.setTargetPosition(ARM_EXTEND_VERT_SPEC_PRE_HANG);
                         armState = ArmState.ATTACH_SPEC;
                     }
@@ -286,6 +288,7 @@ public class BasketTeleOp extends LinearOpMode {
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
             telemetry.addData("armLift", armLift.getCurrentPosition());
             telemetry.addData("armExtend", armExtend.getCurrentPosition());
+            telemetry.addData("clawYaw", clawYaw.getPosition());
             telemetry.update();
         }
     }
